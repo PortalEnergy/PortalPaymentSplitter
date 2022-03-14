@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 import "./PEToken.sol";
-import "hardhat/console.sol";
 
 contract PortalPaySplitter is OwnableUpgradeable {
     using SafeMathUpgradeable for uint256;
@@ -44,6 +43,7 @@ contract PortalPaySplitter is OwnableUpgradeable {
     uint256 _distributeAmount;
     uint256 _minEtherForDistribute;
     uint256 _minStake;
+    uint256 _distributedAmout;
     uint8 _maxAccountsPerDistribute;
     uint256 BIGNUMBER;
     
@@ -56,6 +56,7 @@ contract PortalPaySplitter is OwnableUpgradeable {
         _sharePercent = 80;
         _treasureAmount = 0;
         _distributeAmount = 0;
+        _distributedAmout = 0;
         _contractAddress = address(this);
         _totalCoinsInContract = 0;
         _stakersCount = 0;
@@ -76,6 +77,10 @@ contract PortalPaySplitter is OwnableUpgradeable {
         emit PaymentReceived(msg.sender, msg.value);
     }
 
+    function getTotalCoinsInContract() public view returns (uint256) {
+        return _totalCoinsInContract;
+    }
+
     function getStakersCount() public view returns (uint256) {
         return _stakersCount;
     }
@@ -94,8 +99,17 @@ contract PortalPaySplitter is OwnableUpgradeable {
     function getDistributeAmount() public view returns (uint256) {
         return _distributeAmount;
     }
-    function getBalance(address stakeOwner) public view returns (uint256) {
+
+    function getDistributedAmount() public view returns (uint256) {
+        return _distributedAmout;
+    }
+
+    function getETHBalance(address stakeOwner) public view returns (uint256) {
         return _balances[stakeOwner];
+    }
+
+    function getStakeAmountByAddress(address stakeOwner) public view returns (uint256){
+        return _stakers[stakeOwner];
     }
 
     function getMinEtherForDistribute() public view returns (uint256) {
@@ -110,13 +124,7 @@ contract PortalPaySplitter is OwnableUpgradeable {
         return _minStake;
     }
 
-    function getStakeAmountByAddress(address stakeOwner)
-        public
-        view 
-        returns (uint256)
-    {
-        return _stakers[stakeOwner];
-    }
+
 
     function setMaxAccountsPerDistribute(uint8 max) external onlyOwner {
         require(max > 10, "Minimum of 10");
@@ -181,6 +189,7 @@ contract PortalPaySplitter is OwnableUpgradeable {
         if(_distributeProcess.isTreasureDistribute == false ){
             uint256 amount = _distributeProcess.percent.mul(_treasurePercent);
             _treasureAmount += amount;
+            _distributedAmout += amount;
             _distributeAmount -= amount;
             _distributeProcess.distributedAmount += amount;
             _distributeProcess.isTreasureDistribute = true;
@@ -207,6 +216,7 @@ contract PortalPaySplitter is OwnableUpgradeable {
             _balances[addr] += stakerShare;
             _distributeProcess.distributedAmount += stakerShare;
             _distributeAmount -= stakerShare;
+            _distributedAmout += stakerShare;
             d = i;
 
             if (b == _maxAccountsPerDistribute) {
@@ -267,8 +277,9 @@ contract PortalPaySplitter is OwnableUpgradeable {
         require(amount > 0, "Nothig to release");
 
         _peTokenContract.transfer(sender, amount);
-
+        _totalCoinsInContract -= amount;
         _stakers[sender] = 0;
+        _stakersCount--;
     }
 
     function releaseETH() external {

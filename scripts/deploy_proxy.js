@@ -10,16 +10,18 @@ async function main() {
   }
 
   const PEToken = await ethers.getContractFactory("PEToken");
-  const PortalPaySplitter = await ethers.getContractFactory("PortalPaySplitter");
+
 
   console.log("Deploying PEToken...");
-  const PETokenDeploy = await upgrades.deployProxy(PEToken, ["PEToken", "POE"]);
-  await PETokenDeploy.deployed()
+  const PETokenDeploy = await upgrades.deployProxy(PEToken, ["PortalEnergyToken", "POE"]);
+  await PETokenDeploy.deployed();
+  
   console.log("PEToken deployed to:", PETokenDeploy.address);
   proxy_adresses.PEToken = PETokenDeploy.address;
 
   
   console.log("Deploying PortalPaySplitter...");
+  const PortalPaySplitter = await ethers.getContractFactory("PortalPaySplitter");
   const PortalPaySplitterDeploy = await upgrades.deployProxy(PortalPaySplitter, [PETokenDeploy.address]);
   await PortalPaySplitterDeploy.deployed();
   proxy_adresses.PortalPaySplitter = PortalPaySplitterDeploy.address;

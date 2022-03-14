@@ -3,7 +3,7 @@ const { ethers, upgrades } = require("hardhat");
 const maxTokenSend = 300;
 const minTokenSend = 200;
 const ethForDistribute = 4;
-const showMoreLogs = false;
+const showMoreLogs = true;
 var owner = null;
 var accounts = null;
 
@@ -14,6 +14,7 @@ function randomInterval() {
 before(async function() {
 
     accounts = await ethers.getSigners();
+
     owner = accounts[0].address;
 
     const PEToken = await ethers.getContractFactory("PEToken");
@@ -244,7 +245,7 @@ describe("Distribute", function() {
             for (let index = 1; index < accounts.length; index++) {
                 const account = accounts[index];
                 const tokens = await this.paymentSplitter.getStakeAmountByAddress(account.address);
-                const balance = await this.paymentSplitter.getBalance(account.address);
+                const balance = await this.paymentSplitter.getETHBalance(account.address);
                 
                 expect(balance).to.not.be.equal(0);
 
@@ -300,7 +301,7 @@ describe("Release ETH", function() {
             const tx = await this.paymentSplitter.connect(account).releaseETH();
             tx.wait();
 
-            const ethAfterRelease = await this.paymentSplitter.getBalance(account.address);
+            const ethAfterRelease = await this.paymentSplitter.getETHBalance(account.address);
             
             expect(ethAfterRelease.toString()).to.be.equal("0");
 

@@ -5,3 +5,4 @@ cache
 artifacts
 proxy_adresses.json
 .openzeppelin
+.mnemonic
