@@ -6,7 +6,7 @@
   "scripts": {
     "test": "hardhat test --verbose",
     "deploy": "npx hardhat run --network hardhat scripts/deploy_proxy.js",
-    "deploy:bscmainet": "npx hardhat run --network bscMainet scripts/deploy_proxy.js",
+    "deploy:bscmainet": "npx hardhat run --network bsc scripts/deploy_proxy.js",
     "deploy:bsctestnet": "npx hardhat run --network bscTestnet scripts/deploy_proxy.js",
     "upgrade": "npx hardhat run --network localhost scripts/upgrade_proxy.js",
     "upgrade:mainet": "npx hardhat run --network mainet scripts/upgrade_proxy.js"

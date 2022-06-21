@@ -2,6 +2,7 @@ require("@nomiclabs/hardhat-waffle");
 require('@openzeppelin/hardhat-upgrades');
 require("hardhat-gas-reporter");
 const fs = require('fs');
+const path = require("path");
 const { task } = require("hardhat/config");
 
 const mnemonic = fs.readFileSync('.mnemonic', 'utf8')
@@ -42,19 +43,10 @@ task("portal", "test deployed contracts", async () => {
 task("portal:distribute", "Distribute ETH", async () => {
 
   const PortalPaySplitterABI = require('./artifacts/contracts/PortalPaySplitter.sol/PortalPaySplitter.json');
-  const contractAddress = "0x40918Ba7f132E0aCba2CE4de4c4baF9BD2D7D849";
+  const contractAddress = "0xe09a4e0DEC6365C8f8f58Ca5C14eE2706EA541Dc";
 
   const accounts = await ethers.getSigners();
   const contract = new ethers.Contract(contractAddress, PortalPaySplitterABI.abi, accounts[0]);
-
-  let tx = await accounts[0].sendTransaction(
-    {
-        to:contractAddress, 
-        value:ethers.utils.parseEther("1") 
-    }
-  );
-
-  tx.wait();
   
   const distribute = await contract.distribute()
   distribute.wait();
@@ -62,6 +54,43 @@ task("portal:distribute", "Distribute ETH", async () => {
 
 })
 
+task("portal:checkDistribute", "Balances of stakers", async () => {
+  const PortalPaySplitterABI = require('./artifacts/contracts/PortalPaySplitter.sol/PortalPaySplitter.json');
+  const contractAddress = "0xe09a4e0DEC6365C8f8f58Ca5C14eE2706EA541Dc";
+
+  const accounts = await ethers.getSigners();
+  const contract = new ethers.Contract(contractAddress, PortalPaySplitterABI.abi, accounts[0]);
+  
+  const holdersAccounts = readHolderAccounts();
+
+  for (let index = 0; index < holdersAccounts.length; index++) {
+    const element = holdersAccounts[index];
+    
+
+    let balanceETH = await contract.getETHBalance(element.address);
+    let balancePOE = await contract.getStakeAmountByAddress(element.address);
+
+    console.log("Адрес", element.address,"c", Number(ethers.utils.formatEther(balancePOE)).toFixed(0) ,"POE","получил", Number(ethers.utils.formatEther(balanceETH)).toFixed(4), "BNB" )
+  }
+
+})
+
+
+function readHolderAccounts() {
+  let holdersRaw = fs.readFileSync(path.join(__dirname, '/token_holders.csv')).toString().split('\n');
+  let holdersAccounts = [];
+
+
+  for (let index = 0; index < holdersRaw.length; index++) {
+      const element = holdersRaw[index].split(',');
+      if(element[2])
+      holdersAccounts.push({
+          address: element[2],
+          sbBalance: Number(element[3])
+      })
+  }
+  return holdersAccounts;
+}
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
@@ -69,7 +98,7 @@ task("portal:distribute", "Distribute ETH", async () => {
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  defaultNetwork: "bscTestnet",
+  defaultNetwork: "bsc",
   gasReporter: {
     currency: 'USD',
     gasPrice: 21
@@ -98,8 +127,11 @@ module.exports = {
       skipDryRun: true
     },
     bsc: {
-      url: "https://bsc-dataseed1.binance.org",
+      url: "https://bsc-dataseed.binance.org/",
       network_id: 56,
+      chainId: 56,
+      gasPrice: 20000000000,
+      accounts: {mnemonic: mnemonic},
       confirmations: 10,
       timeoutBlocks: 200,
       skipDryRun: true

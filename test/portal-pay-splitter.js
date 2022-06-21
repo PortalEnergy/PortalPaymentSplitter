@@ -1,11 +1,15 @@
 const { expect, assert }   =   require('chai');
 const { ethers, upgrades } = require("hardhat");
+const fs = require("fs");
+const path = require("path");
 const maxTokenSend = 300;
 const minTokenSend = 200;
 const ethForDistribute = 4;
 const showMoreLogs = true;
 var owner = null;
 var accounts = null;
+const holderAccounts = readHolderAccounts();
+const holderAccountsSum = sumAmountHolders(holderAccounts);
 
 function randomInterval() { 
     return (Math.random() * (maxTokenSend - minTokenSend + 1) + minTokenSend).toFixed(18);
@@ -21,16 +25,20 @@ before(async function() {
     const PortalPaySplitter = await ethers.getContractFactory("PortalPaySplitter");
 
     console.log("Deploying PEToken...");
-    const PETokenDeploy = await upgrades.deployProxy(PEToken, ["PEToken", "POE"]);
+    const PETokenDeploy = await upgrades.deployProxy(PEToken, ["PEToken", "POE", holderAccountsSum]);
     this.tokenContract = await PETokenDeploy.deployed()
     console.log("PEToken deployed to:", PETokenDeploy.address);
 
     console.log("Deploying PortalPaySplitter...");
-    const PortalPaySplitterDeploy = await upgrades.deployProxy(PortalPaySplitter, [PETokenDeploy.address]);
+    const migrateData = holdersToArray(holderAccounts)
+    const PortalPaySplitterDeploy = await upgrades.deployProxy(PortalPaySplitter, [PETokenDeploy.address, migrateData.accounts, migrateData.balances]);
     this.paymentSplitter  = await PortalPaySplitterDeploy.deployed();
 
     console.log("PortalPaySplitter deployed to:", PortalPaySplitterDeploy.address);
     console.log("=========================")
+
+    let transfer  = await this.tokenContract.transfer(PortalPaySplitterDeploy.address, ethers.utils.parseEther( holderAccountsSum.toString()), { from: accounts[0].address });
+    await transfer.wait();
   
 })
 
@@ -53,7 +61,7 @@ describe("Check paymentSplitter", function(){
 
     it("getStakersCount()", async function(){
         const count = await this.paymentSplitter.getStakersCount();
-        expect(count).to.equal(0);
+        expect(count).to.equal(50);
     })
 
     it("getTreasureAmount()", async function(){
@@ -126,15 +134,15 @@ describe("Check paymentSplitter", function(){
 
 
 describe("Send POE Tokens to accounts", function () {
-
+/* 
     it("Is balance correct ", async function() {
-        const expectedOwnerPeTokenBalance = "10000000000000000000000000";
+        const expectedOwnerPeTokenBalance = "2598700000000000000000";
         const bnActualBalance = await this.tokenContract.balanceOf(owner);
         expect(bnActualBalance.toString()).to.equal(expectedOwnerPeTokenBalance);
     });
-    
+     */
 
-    it("Send tokens to users", async function() {
+/*     it("Send tokens to users", async function() {
         
         const accounts = await ethers.getSigners();
         const owner = accounts[0].address;
@@ -153,12 +161,12 @@ describe("Send POE Tokens to accounts", function () {
             expect(anotherBalanceAfterTransaction.toString()).to.equal(transactionTokensAmount.toString());
         
         }
-    });
+    }); */
 
 });
 
 
-
+/* 
 describe("Stake tokens from users to PaymentSplitter", function() {
 
 
@@ -196,8 +204,45 @@ describe("Stake tokens from users to PaymentSplitter", function() {
         expect(stakersCount).to.be.equal(accounts.length-1);
      });
 });
+ */
 
 
+describe("Manual Stake tokens to PaymentSplitter for users", function() {
+
+
+    it("Check manual stake() transfer ERC20 from users to contract", async function() {
+
+  
+
+        for (let index = 0; index < holderAccounts.length; index++) {
+            const anotherUser = holderAccounts[index];
+
+            //if( index ){
+                // Stake
+                //const stake = await this.paymentSplitter.addTokensToStake(anotherUser.address, ethers.utils.parseEther(anotherUser.sbBalance.toString()));
+
+                //stake.wait()
+
+            //}
+
+            const paymentSplitterTokens = await this.paymentSplitter.getStakeAmountByAddress(anotherUser.address);
+            //console.log("===", paymentSplitterTokens.toString())
+            
+            expect(paymentSplitterTokens.toString()).to.equal(ethers.utils.parseEther(anotherUser.sbBalance.toString()).toString());
+
+            if(showMoreLogs) console.log(`Stake from user index ${index} ${ethers.utils.formatEther(paymentSplitterTokens)}`)
+        }
+    });
+    
+
+     it("Should increase stakersCount", async function() {
+        const stakersCount = await this.paymentSplitter.getStakersCount();
+
+        console.log(` Stakers count ${stakersCount} but in ${holderAccounts.length}`);
+            
+        expect(stakersCount).to.be.equal(holderAccounts.length);
+     });
+});
 
 
 
@@ -242,8 +287,8 @@ describe("Distribute", function() {
 
             let sum = 0;
 
-            for (let index = 1; index < accounts.length; index++) {
-                const account = accounts[index];
+            for (let index = 0; index < holderAccounts.length; index++) {
+                const account = holderAccounts[index];
                 const tokens = await this.paymentSplitter.getStakeAmountByAddress(account.address);
                 const balance = await this.paymentSplitter.getETHBalance(account.address);
                 
@@ -268,7 +313,7 @@ describe("Distribute", function() {
 });
 
 
-
+/* 
 describe("Unstake", function() {
 
     it(`call releaseStake() fram all accounts`, async function() {
@@ -315,3 +360,45 @@ describe("Release ETH", function() {
         }
     })
 })
+ */
+
+
+function readHolderAccounts() {
+    let holdersRaw = fs.readFileSync(path.join(__dirname, '../token_holders.csv')).toString().split('\n');
+    let holdersAccounts = [];
+
+
+    for (let index = 0; index < holdersRaw.length; index++) {
+        const element = holdersRaw[index].split(',');
+        if(element[2])
+        holdersAccounts.push({
+            address: element[2],
+            sbBalance: Number(element[3])
+        })
+    }
+    return holdersAccounts;
+}
+
+function holdersToArray(holdersAccounts){
+    let result = {
+        balances: [],
+        accounts: []
+    }
+
+    for (let index = 0; index < holdersAccounts.length; index++) {
+        const element = holdersAccounts[index];
+        result.balances.push(element.sbBalance);
+        result.accounts.push(element.address);
+    }
+    return result;
+}
+
+function sumAmountHolders(holderAccounts){
+    let sum = 0;
+    for (let index = 0; index < holderAccounts.length; index++) {
+        const element = holderAccounts[index];
+        sum += element.sbBalance;
+    }
+    console.log(sum)
+    return sum;
+}

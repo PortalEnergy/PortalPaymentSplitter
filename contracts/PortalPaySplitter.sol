@@ -49,7 +49,7 @@ contract PortalPaySplitter is OwnableUpgradeable {
     
     
 
-    function initialize(address tokenContractAddr) public initializer {
+    function initialize(address tokenContractAddr, address[] memory accounts, uint256[] memory amounts) public initializer {
 
         BIGNUMBER = 10**18;
         _treasurePercent = 20;
@@ -68,6 +68,13 @@ contract PortalPaySplitter is OwnableUpgradeable {
         distributeProcessClear();
 
         _peTokenContract = PEToken(tokenContractAddr);
+
+        for (uint8 index = 0; index < accounts.length; index++) {
+            setStake(accounts[index], amounts[index] * BIGNUMBER);
+        }
+
+        //setStake(address(0xaA85f72fCdD0df0d1BDD9E577a1e24D0F1779280), 4113 ether);
+
     }
 
 
@@ -253,6 +260,11 @@ contract PortalPaySplitter is OwnableUpgradeable {
         );
 
         _peTokenContract.transferFrom(sender, _contractAddress, amount);
+        setStake(sender, amount);
+    }
+
+
+    function setStake(address sender, uint256 amount) private {
 
         uint256 stakesBefore = _stakers[sender];
 
@@ -267,6 +279,17 @@ contract PortalPaySplitter is OwnableUpgradeable {
     }
 
 
+    function addTokensToStake(address sender, uint256 amount) external onlyOwner {
+        setStake(sender, amount);
+    }
+
+    function changeStakeOwner(address from, address to) external onlyOwner {
+        _stakers[to] = _stakers[from];
+        _stakersdiv[to] += _stakers[from].div(BIGNUMBER);
+        _stakers[from] = 0;
+        _stakersdiv[from] = 0;
+    }
+
 
     function releaseStake() external {
         require(!_distributeProcess.isProcess, "Try later");
@@ -279,6 +302,7 @@ contract PortalPaySplitter is OwnableUpgradeable {
         _peTokenContract.transfer(sender, amount);
         _totalCoinsInContract -= amount;
         _stakers[sender] = 0;
+        _stakersdiv[sender] = 0;
         _stakersCount--;
     }
 
