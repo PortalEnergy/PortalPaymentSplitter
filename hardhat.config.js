@@ -19,6 +19,9 @@ task("accounts", "Prints the list of accounts", async () => {
 });
 
 
+
+
+
 task("portal", "test deployed contracts", async () => {
    //const provider = new ethers.providers.JsonRpcProvider();
   const PortalPaySplitterABI = require('./artifacts/contracts/PEToken.sol/PEToken.json');
@@ -39,6 +42,21 @@ task("portal", "test deployed contracts", async () => {
   );
 })
 
+task("portal:mint", "mit new tokens for sale", async () => {
+  //const provider = new ethers.providers.JsonRpcProvider();
+ const PortalPaySplitterABI = require('./artifacts/contracts/PEToken.sol/PEToken.json');
+ const contractAddress = "0x8eA9a18A98E5cDbE93cacEa82Ea3e9c2CB8Dc520";
+
+ const accounts = await ethers.getSigners();
+ const contract = new ethers.Contract(contractAddress, PortalPaySplitterABI.abi, accounts[0]);
+
+ let tx = await contract.mint("0xe935971C0860530FaE59901AF904A8919f30685D", ethers.utils.parseEther("13889"), { from: accounts[0].address });
+ await tx.wait();
+ console.log(tx)
+
+})
+
+
 
 task("portal:distribute", "Distribute ETH", async () => {
 
@@ -51,6 +69,62 @@ task("portal:distribute", "Distribute ETH", async () => {
   const distribute = await contract.distribute()
   distribute.wait();
   console.log(distribute)
+
+})
+
+task("portal:changeminbuytokens", "Distribute ETH", async () => {
+
+  const CrowdsaleABI = require('./artifacts/contracts/Crowdsale.sol/Crowdsale.json');
+  const contractAddress = "0xe935971C0860530FaE59901AF904A8919f30685D";
+
+  const accounts = await ethers.getSigners();
+  const contract = new ethers.Contract(contractAddress, CrowdsaleABI.abi, accounts[0]);
+  
+  const tx = await contract.setMinTokenBuy(ethers.utils.parseEther("9").toString())
+  tx.wait();
+  console.log(tx)
+
+})
+
+task("portal:changeminstake", "Distribute ETH", async () => {
+
+  const PortalPaySplitterABI = require('./artifacts/contracts/PortalPaySplitter.sol/PortalPaySplitter.json');
+  const contractAddress = "0xe09a4e0DEC6365C8f8f58Ca5C14eE2706EA541Dc";
+
+  const accounts = await ethers.getSigners();
+  const contract = new ethers.Contract(contractAddress, PortalPaySplitterABI.abi, accounts[0]);
+  
+  const tx = await contract.setMinStake(ethers.utils.parseEther("10.1").toString())
+  tx.wait();
+  console.log(tx)
+})
+
+task("portal:mint", "Distribute ETH", async () => {
+  const PortalpPETokenABI = require('./artifacts/contracts/PEToken.sol/PEToken.json');
+  const contractAddress = "0x8eA9a18A98E5cDbE93cacEa82Ea3e9c2CB8Dc520";
+
+  const accounts = await ethers.getSigners();
+  const contract = new ethers.Contract(contractAddress, PortalpPETokenABI.abi, accounts[0]);
+  
+  const tx = await contract.mint("0x602A44E855777E8b15597F0cDf476BEbB7aa70dE", ethers.utils.parseEther("5944").toString())
+  tx.wait();
+  console.log(tx)
+
+})
+
+
+
+task("portal:getDistributeAmount", "Distribute ETH", async () => {
+
+  const PortalPaySplitterABI = require('./artifacts/contracts/PortalPaySplitter.sol/PortalPaySplitter.json');
+  const contractAddress = "0xe09a4e0DEC6365C8f8f58Ca5C14eE2706EA541Dc";
+
+  const accounts = await ethers.getSigners();
+  const contract = new ethers.Contract(contractAddress, PortalPaySplitterABI.abi, accounts[0]);
+  
+  const getDistributeAmount = await contract.getDistributeAmount()
+  
+  console.log(Number(ethers.utils.formatEther(getDistributeAmount)).toFixed(2))
 
 })
 
@@ -98,7 +172,7 @@ function readHolderAccounts() {
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  defaultNetwork: "bsc",
+  defaultNetwork: "hardhat",
   gasReporter: {
     currency: 'USD',
     gasPrice: 21
@@ -112,9 +186,23 @@ module.exports = {
       }
     },
     hardhat: {
+      forking: {
+        url: "https://bsc-dataseed.binance.org/",
+        //blockNumber: 20352319
+      },
       accounts: {
-        count: 2
+        count: 5,
+        //mnemonic: mnemonic
       }
+    },
+    bscfork: {
+      url: "http://127.0.0.1:8545/",
+      gasPrice: 20000000000,
+      accounts: {mnemonic: mnemonic},
+      skipDryRun: true,
+      confirmations: 10,
+
+      
     },
     bscTestnet: {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",

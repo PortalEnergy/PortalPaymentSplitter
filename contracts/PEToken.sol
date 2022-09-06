@@ -16,6 +16,7 @@ contract PEToken is Initializable, ERC20Upgradeable, OwnableUpgradeable {
         _mint(msg.sender, initialTokenSupply);
     }
 
+
     function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
     }
