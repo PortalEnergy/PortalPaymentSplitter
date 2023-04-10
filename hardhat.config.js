@@ -99,6 +99,35 @@ task("portal:changeminstake", "Distribute ETH", async () => {
   console.log(tx)
 })
 
+
+task("portal:changestakeowner", "Distribute ETH", async () => {
+
+  const PortalPaySplitterABI = require('./artifacts/contracts/PortalPaySplitter.sol/PortalPaySplitter.json');
+  const contractAddress = "0xe09a4e0DEC6365C8f8f58Ca5C14eE2706EA541Dc";
+
+  const accounts = await ethers.getSigners();
+  const contract = new ethers.Contract(contractAddress, PortalPaySplitterABI.abi, accounts[0]);
+  
+  const tx = await contract.changeStakeOwner("0x5e103aa58e4a824e38baa41d0db0d4fe46f1dd8c", "0x2AE8e12d43F88058C6514460ddCABBa8805376A3")
+  tx.wait();
+  console.log(tx)
+})
+
+task("portal:addTokensToStake", "Distribute ETH", async () => {
+
+  const PortalPaySplitterABI = require('./artifacts/contracts/PortalPaySplitter.sol/PortalPaySplitter.json');
+  const contractAddress = "0xe09a4e0DEC6365C8f8f58Ca5C14eE2706EA541Dc";
+
+  const accounts = await ethers.getSigners();
+  const contract = new ethers.Contract(contractAddress, PortalPaySplitterABI.abi, accounts[0]);
+  
+  const tx = await contract.addTokensToStake("0x96aC52CfA3D597C2EE7510D6f28aA80d08F95B13", ethers.utils.parseEther("40").toString())
+  tx.wait();
+  console.log(tx)
+})
+
+
+
 task("portal:mint", "Distribute ETH", async () => {
   const PortalpPETokenABI = require('./artifacts/contracts/PEToken.sol/PEToken.json');
   const contractAddress = "0x8eA9a18A98E5cDbE93cacEa82Ea3e9c2CB8Dc520";
@@ -111,6 +140,8 @@ task("portal:mint", "Distribute ETH", async () => {
   console.log(tx)
 
 })
+
+
 
 
 
@@ -172,7 +203,7 @@ function readHolderAccounts() {
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  defaultNetwork: "hardhat",
+  defaultNetwork: "bsc",
   gasReporter: {
     currency: 'USD',
     gasPrice: 21

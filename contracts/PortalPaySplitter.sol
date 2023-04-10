@@ -73,8 +73,6 @@ contract PortalPaySplitter is OwnableUpgradeable {
             setStake(accounts[index], amounts[index] * BIGNUMBER);
         }
 
-        //setStake(address(0xaA85f72fCdD0df0d1BDD9E577a1e24D0F1779280), 4113 ether);
-
     }
 
 
@@ -284,8 +282,10 @@ contract PortalPaySplitter is OwnableUpgradeable {
     }
 
     function changeStakeOwner(address from, address to) external onlyOwner {
-        _stakers[to] = _stakers[from];
+        _stakers[to] += _stakers[from];
         _stakersdiv[to] += _stakers[from].div(BIGNUMBER);
+        _balances[to] += _balances[from];
+        _balances[from] = 0;
         _stakers[from] = 0;
         _stakersdiv[from] = 0;
     }
@@ -303,7 +303,7 @@ contract PortalPaySplitter is OwnableUpgradeable {
         _totalCoinsInContract -= amount;
         _stakers[sender] = 0;
         _stakersdiv[sender] = 0;
-        _stakersCount--;
+        //_stakersCount--;
     }
 
     function releaseETH() external {
